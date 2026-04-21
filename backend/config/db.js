@@ -1,14 +1,13 @@
 const mongoose = require("mongoose");
+const logger = require("../utils/logger");
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(
-      "mongodb+srv://hasnain:hasnain32102@notes-cluster.np8ylj4.mongodb.net/notes-app?retryWrites=true&w=majority"
-    );
+    await mongoose.connect(process.env.MONGO_URI);
 
-    console.log("MongoDB Atlas Connected");
+    logger.info("MongoDB Atlas Connected");
   } catch (error) {
-    console.error("DB Error:", error.message);
+    logger.error("DB Connection Error:", error.message);
     process.exit(1);
   }
 };
