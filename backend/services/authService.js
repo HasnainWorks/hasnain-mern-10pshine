@@ -4,6 +4,11 @@ const User = require("../models/User");
 const logger = require("../utils/logger");
 
 const signup = async (name, email, password) => {
+  if (!name || !email || !password) {
+    const error = new Error("Name, email, and password are required");
+    error.status = 400;
+    throw error;
+  }
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     logger.warn(`Signup failed - user already exists: ${email}`);
@@ -24,6 +29,12 @@ const signup = async (name, email, password) => {
 };
 
 const login = async (email, password) => {
+
+  if (!email || !password) {
+    const error = new Error("Email and password are required");
+    error.status = 400;
+    throw error;
+  }
   const user = await User.findOne({ email });
   if (!user) {
     logger.warn(`Login failed - user not found: ${email}`);
