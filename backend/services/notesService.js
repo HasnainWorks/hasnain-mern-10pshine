@@ -2,6 +2,11 @@ const Note = require("../models/Note");
 const logger = require("../utils/logger");
 
 const createNote = async (title, content, userId) => {
+  if (!title) {
+    const error = new Error("Title is required");
+    error.status = 400;
+    throw error;
+  }
   const note = await Note.create({ title, content, user: userId });
   logger.info(`Note created by user: ${userId}`);
   return note;
