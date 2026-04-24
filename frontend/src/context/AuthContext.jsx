@@ -9,16 +9,24 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+
     if (!token) {
       setLoading(false);
       return;
     }
-    const payload = authService.getMe();
-    if (payload) {
-      setUser({ id: payload.id });
+
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
     } else {
-      localStorage.removeItem("token");
+      const payload = authService.getMe();
+      if (payload) {
+        setUser({ id: payload.id });
+      } else {
+        localStorage.removeItem("token");
+      }
     }
+
     setLoading(false);
   }, []);
 
@@ -29,7 +37,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signup = async (name, email, password) => {
-    // Signup doesn't return token — auto login after
     await authService.signup(name, email, password);
     const data = await authService.login(email, password);
     setUser(data.user);
