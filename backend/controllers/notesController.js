@@ -34,7 +34,34 @@ const updateNote = async (req, res, next) => {
 
 const deleteNote = async (req, res, next) => {
   try {
-    const result = await notesService.deleteNote(
+    const result = await notesService.deleteNote(req.params.id, req.user.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getTrashedNotes = async (req, res, next) => {
+  try {
+    const notes = await notesService.getTrashedNotes(req.user.id);
+    res.json(notes);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const restoreNote = async (req, res, next) => {
+  try {
+    const note = await notesService.restoreNote(req.params.id, req.user.id);
+    res.json(note);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const permanentlyDeleteNote = async (req, res, next) => {
+  try {
+    const result = await notesService.permanentlyDeleteNote(
       req.params.id,
       req.user.id
     );
@@ -44,4 +71,37 @@ const deleteNote = async (req, res, next) => {
   }
 };
 
-module.exports = { createNote, getNotes, updateNote, deleteNote };
+const togglePin = async (req, res, next) => {
+  try {
+    const note = await notesService.togglePin(req.params.id, req.user.id);
+    res.json(note);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateTags = async (req, res, next) => {
+  try {
+    const { tags } = req.body;
+    const note = await notesService.updateTags(
+      req.params.id,
+      req.user.id,
+      tags
+    );
+    res.json(note);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  createNote,
+  getNotes,
+  updateNote,
+  deleteNote,
+  getTrashedNotes,
+  restoreNote,
+  permanentlyDeleteNote,
+  togglePin,
+  updateTags,
+};
