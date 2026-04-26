@@ -2,18 +2,24 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotesGrid from "../components/NotesGrid";
+import PinnedView from "../components/PinnedView";
+import TagsView from "../components/TagsView";
+import TrashView from "../components/TrashView";
+import NoteEditor from "../pages/NoteEditor";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const [activeSection, setActiveSection] = useState("notes");
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [showEditor, setShowEditor] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const handleLogout = () => { logout(); navigate("/login"); };
+  const openNew = () => { setSelectedNote(null); setShowEditor(true); };
+  const openEdit = (note) => { setSelectedNote(note); setShowEditor(true); };
+  const handleSave = () => { setShowEditor(false); setRefreshKey((k) => k + 1); };
 
   const navItems = [
     { id: "notes",  label: "All Notes", icon: "✦" },
@@ -27,24 +33,18 @@ export default function Dashboard() {
 
       {/* Sidebar */}
       <aside className="w-60 border-r border-white/[0.07] flex flex-col py-6 px-4 shrink-0">
-
-        {/* Logo */}
         <div className="flex items-center gap-2.5 mb-10 px-2">
-          <div className="bg-[#CAFF00] text-black w-7 h-7 rounded flex items-center justify-center font-black text-sm">
-            →
-          </div>
+          <div className="bg-[#CAFF00] text-black w-7 h-7 rounded flex items-center justify-center font-black text-sm">→</div>
           <span className="font-black text-lg tracking-tight">Noted.</span>
         </div>
 
-        {/* New Note Button */}
         <button
-          onClick={() => alert("Editor coming next!")}
+          onClick={openNew}
           className="w-full bg-[#CAFF00] hover:bg-[#b8e600] text-black text-sm font-bold py-2.5 rounded-lg mb-6 transition-colors"
         >
           + New Note
         </button>
 
-        {/* Nav */}
         <nav className="flex flex-col gap-0.5 flex-1">
           {navItems.map((item) => (
             <button
@@ -62,7 +62,6 @@ export default function Dashboard() {
           ))}
         </nav>
 
-        {/* User — profile slot ready for later */}
         <div className="border-t border-white/[0.07] pt-4 px-2">
           <button
             onClick={() => navigate("/profile")}
@@ -72,9 +71,7 @@ export default function Dashboard() {
               {(user?.name || user?.email || "U")[0].toUpperCase()}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm font-semibold truncate leading-tight">
-                {user?.name || user?.email || "User"}
-              </p>
+              <p className="text-sm font-semibold truncate leading-tight">{user?.name || user?.email}</p>
               <p className="text-xs text-white/30 truncate">{user?.email || ""}</p>
             </div>
           </button>
@@ -85,25 +82,33 @@ export default function Dashboard() {
             Sign out →
           </button>
         </div>
-
       </aside>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="flex-1 overflow-y-auto">
         {activeSection === "notes" && (
-          <NotesGrid
-            key={refreshKey}
-            token={token}
-            onSelectNote={(note) => console.log("selected", note)}
-          />
+          <NotesGrid key={refreshKey} token={token} onSelectNote={openEdit} />
         )}
-        {activeSection !== "notes" && (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-white/20 text-sm tracking-widest uppercase">Coming soon</p>
-          </div>
+        {activeSection === "pinned" && (
+          <PinnedView token={token} onSelectNote={openEdit} />
+        )}
+        {activeSection === "tags" && (
+          <TagsView token={token} onSelectNote={openEdit} />
+        )}
+        {activeSection === "trash" && (
+          <TrashView token={token} />
         )}
       </main>
 
+      {/* Editor */}
+      {showEditor && (
+        <NoteEditor
+          token={token}
+          note={selectedNote}
+          onSave={handleSave}
+          onClose={() => setShowEditor(false)}
+        />
+      )}
     </div>
   );
 }
