@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import ExportMenu from "../components/notes/ExportMenu";
 
 const API = "http://localhost:5000/api";
 
@@ -180,20 +181,21 @@ export default function NoteEditor({ token, note, onSave, onClose }) {
             {isEditing ? "Editing note" : "New note"}
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-white/20 text-xs font-mono">
-            {wordCount} words · {charCount} chars
-          </span>
-          <span className="text-xs font-mono text-white/20">
-            Ctrl+S to save · Esc to close
-          </span>
-          <button
-            onClick={handleClose}
-            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all text-xs"
-          >
-            ✕
-          </button>
-        </div>
+       <div className="flex items-center gap-4">
+  <span className="text-white/20 text-xs font-mono">
+    {wordCount} words · {charCount} chars
+       </span>
+        {isEditing && <ExportMenu note={note} />}
+     <span className="text-xs font-mono text-white/20 hidden sm:block">
+        Ctrl+S to save · Esc to close
+     </span>
+    <button
+       onClick={handleClose}
+       className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all text-xs"
+    >
+    ✕
+    </button>
+     </div>
       </div>
 
       {/* Title */}

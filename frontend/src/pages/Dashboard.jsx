@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import NotesGrid from "../components/NotesGrid";
+import NotesGrid from "../components/notes/NotesGrid";
 import PinnedView from "../components/PinnedView";
 import TagsView from "../components/TagsView";
 import TrashView from "../components/TrashView";
