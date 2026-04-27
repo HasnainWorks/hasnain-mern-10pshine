@@ -20,4 +20,46 @@ const login = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, login };
+const getMe = async (req, res, next) => {
+  try {
+    const user = await authService.getMe(req.user.id);
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateMe = async (req, res, next) => {
+  try {
+    const { name, email } = req.body;
+    const user = await authService.updateMe(req.user.id, name, email);
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const result = await authService.changePassword(
+      req.user.id,
+      currentPassword,
+      newPassword
+    );
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteMe = async (req, res, next) => {
+  try {
+    const result = await authService.deleteMe(req.user.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { signup, login, getMe, updateMe, changePassword, deleteMe };
