@@ -6,6 +6,8 @@ import PinnedView from "../components/PinnedView";
 import TagsView from "../components/TagsView";
 import TrashView from "../components/TrashView";
 import NoteEditor from "../pages/NoteEditor";
+import ImportNote from "../components/notes/ImportNote";
+
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -15,11 +17,27 @@ export default function Dashboard() {
   const [selectedNote, setSelectedNote] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [importedNote, setImportedNote] = useState(null);
 
   const handleLogout = () => { logout(); navigate("/login"); };
   const openNew = () => { setSelectedNote(null); setShowEditor(true); };
   const openEdit = (note) => { setSelectedNote(note); setShowEditor(true); };
-  const handleSave = () => { setShowEditor(false); setRefreshKey((k) => k + 1); };
+ const handleSave = () => {
+  setShowEditor(false);
+  setImportedNote(null);
+  setRefreshKey((k) => k + 1);
+};
+
+const handleEditorClose = () => {
+  setShowEditor(false);
+  setImportedNote(null);
+};
+
+const handleImport = ({ title, content }) => {
+  setImportedNote({ title, content });
+  setSelectedNote(null);
+  setShowEditor(true);
+};
 
   const navItems = [
     { id: "notes",  label: "All Notes", icon: "✦" },
@@ -38,12 +56,15 @@ export default function Dashboard() {
           <span className="font-black text-lg tracking-tight">Noted.</span>
         </div>
 
-        <button
-          onClick={openNew}
-          className="w-full bg-[#CAFF00] hover:bg-[#b8e600] text-black text-sm font-bold py-2.5 rounded-lg mb-6 transition-colors"
-        >
-          + New Note
-        </button>
+       <div className="flex flex-col gap-2 mb-6">
+  <button
+    onClick={openNew}
+    className="w-full bg-[#CAFF00] hover:bg-[#b8e600] text-black text-sm font-bold py-2.5 rounded-lg transition-colors"
+  >
+    + New Note
+  </button>
+  <ImportNote onImport={handleImport} />
+</div>
 
         <nav className="flex flex-col gap-0.5 flex-1">
           {navItems.map((item) => (
@@ -102,13 +123,14 @@ export default function Dashboard() {
 
       {/* Editor */}
       {showEditor && (
-        <NoteEditor
-          token={token}
-          note={selectedNote}
-          onSave={handleSave}
-          onClose={() => setShowEditor(false)}
-        />
-      )}
+  <NoteEditor
+    token={token}
+    note={selectedNote}
+    importedData={importedNote}
+    onSave={handleSave}
+    onClose={handleEditorClose}
+  />
+)}
     </div>
   );
 }
