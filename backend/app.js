@@ -5,6 +5,8 @@ const pinoHttp = require("pino-http");
 const logger = require("./utils/logger");
 const noteRoutes = require("./routes/noteRoutes");
 const authRoutes = require("./routes/authRoutes");
+const aiRoutes = require("./routes/aiRoutes");
+
 
 const app = express();
 
@@ -16,6 +18,7 @@ app.use(pinoHttp({ logger }));
 // Routes
 app.use("/api", noteRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api", aiRoutes);
 
 // Health check
 app.get("/", (req, res) => {
