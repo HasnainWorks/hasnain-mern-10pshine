@@ -131,6 +131,12 @@ const changePassword = async (userId, currentPassword, newPassword) => {
     error.status = 400;
     throw error;
   }
+  const isSame = await bcrypt.compare(newPassword, user.password);
+  if (isSame) {
+  const error = new Error("New password must be different from current password");
+  error.status = 400;
+  throw error;
+}
 
   user.password = await bcrypt.hash(newPassword, 10);
   await user.save();

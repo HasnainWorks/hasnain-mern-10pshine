@@ -2,8 +2,8 @@ const notesService = require("../services/notesService");
 
 const createNote = async (req, res, next) => {
   try {
-    const { title, content } = req.body;
-    const note = await notesService.createNote(title, content, req.user.id);
+   const { title, content, tags } = req.body;
+   const note = await notesService.createNote(title, content, req.user.id, tags);
     res.status(201).json(note);
   } catch (err) {
     next(err);
