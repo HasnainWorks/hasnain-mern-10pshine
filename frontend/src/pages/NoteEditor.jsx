@@ -20,7 +20,7 @@ const ToolbarBtn = ({ onClick, active, title, children }) => (
   </button>
 );
 
-export default function NoteEditor({ token, note, onSave, onClose }) {
+export default function NoteEditor({ token, note, importedData, onSave, onClose }) {
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
@@ -52,18 +52,22 @@ export default function NoteEditor({ token, note, onSave, onClose }) {
   });
 
   useEffect(() => {
-    if (note) {
-      setTitle(note.title);
-      setTags(note.tags || []);
-      editor?.commands.setContent(note.content || "");
-    } else {
-      setTitle("");
-      setTags([]);
-      editor?.commands.clearContent();
-    }
-    setIsDirty(false);
-    setSaveStatus("idle");
-  }, [note]);
+  if (note) {
+    setTitle(note.title);
+    setTags(note.tags || []);
+    editor?.commands.setContent(note.content || "");
+  } else if (importedData) {
+    setTitle(importedData.title);
+    setTags([]);
+    editor?.commands.setContent(importedData.content || "");
+  } else {
+    setTitle("");
+    setTags([]);
+    editor?.commands.clearContent();
+  }
+  setIsDirty(false);
+  setSaveStatus("idle");
+}, [note, importedData]);
 
   const handleSave = useCallback(async (silent = false) => {
     if (!title.trim()) {
@@ -167,6 +171,31 @@ export default function NoteEditor({ token, note, onSave, onClose }) {
     if (isDirty) return "text-yellow-400/60";
     return "text-white/20";
   };
+  const handleImport = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const text = event.target.result;
+    // Set title from filename
+    const importedTitle = file.name
+      .replace(/\.txt$/, "")
+      .replace(/[-_]/g, " ")
+      .trim();
+    setTitle(importedTitle);
+    // Set content — each line becomes a paragraph
+    const html = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => `<p>${line}</p>`)
+      .join("");
+    editor?.commands.setContent(html);
+    setIsDirty(true);
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+};
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0e0e0e] flex flex-col">
@@ -355,6 +384,19 @@ export default function NoteEditor({ token, note, onSave, onClose }) {
         >
           ↪
         </ToolbarBtn>
+        <div className="w-px h-5 bg-white/10 mx-1" />
+
+{/* Import .txt */}
+<label className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white text-xs transition-all cursor-pointer">
+  <span>↑</span>
+  Import .txt
+  <input
+    type="file"
+    accept=".txt"
+    onChange={handleImport}
+    className="hidden"
+  />
+</label>
       </div>
 
       {/* Editor Area */}
