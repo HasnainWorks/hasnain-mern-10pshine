@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import ExportMenu from "../components/notes/ExportMenu";
+import AiPanel from "../components/notes/AiPanel";
 
 const API = "http://localhost:5000/api";
 
@@ -140,6 +141,16 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
     onClose();
   };
 
+  const handleAiApply = (text) => {
+    editor?.commands.setContent(`<p>${text}</p>`);
+    setIsDirty(true);
+  };
+  
+  const handleAiTags = (newTags) => {
+    setTags((prev) => [...new Set([...prev, ...newTags])]);
+    setIsDirty(true);
+  };
+
   const addTag = (raw) => {
     const newTag = raw.trim().toLowerCase().replace(/\s+/g, "-");
     if (newTag && !tags.includes(newTag)) {
@@ -183,7 +194,7 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
       .replace(/[-_]/g, " ")
       .trim();
     setTitle(importedTitle);
-    // Set content — each line becomes a paragraph
+    // Set content — 
     const html = text
       .split("\n")
       .map((line) => line.trim())
@@ -218,6 +229,15 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
      <span className="text-xs font-mono text-white/20 hidden sm:block">
         Ctrl+S to save · Esc to close
      </span>
+
+     <AiPanel
+       token={token}
+       title={title}
+       content={editor?.getHTML() || ""}
+       onApply={handleAiApply}
+       onTagsGenerated={handleAiTags}
+    />
+
     <button
        onClick={handleClose}
        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all text-xs"
