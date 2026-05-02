@@ -4,6 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import ExportMenu from "../components/notes/ExportMenu";
 import AiPanel from "../components/notes/AiPanel";
+import ConfirmModal from "../components/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 
@@ -29,6 +30,7 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
   const [saveStatus, setSaveStatus] = useState("idle");
   const [error, setError] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const isEditing = !!note;
 
@@ -53,22 +55,22 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
   });
 
   useEffect(() => {
-  if (note) {
-    setTitle(note.title);
-    setTags(note.tags || []);
-    editor?.commands.setContent(note.content || "");
-  } else if (importedData) {
-    setTitle(importedData.title);
-    setTags([]);
-    editor?.commands.setContent(importedData.content || "");
-  } else {
-    setTitle("");
-    setTags([]);
-    editor?.commands.clearContent();
-  }
-  setIsDirty(false);
-  setSaveStatus("idle");
-}, [note, importedData]);
+    if (note) {
+      setTitle(note.title);
+      setTags(note.tags || []);
+      editor?.commands.setContent(note.content || "");
+    } else if (importedData) {
+      setTitle(importedData.title);
+      setTags([]);
+      editor?.commands.setContent(importedData.content || "");
+    } else {
+      setTitle("");
+      setTags([]);
+      editor?.commands.clearContent();
+    }
+    setIsDirty(false);
+    setSaveStatus("idle");
+  }, [note, importedData]);
 
   const handleSave = useCallback(async (silent = false) => {
     if (!title.trim()) {
@@ -112,12 +114,12 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
     }
   }, [title, tags, isDirty, editor, isEditing, note, token, onSave]);
 
- useEffect(() => {
-  const interval = setInterval(() => {
-    if (isEditing) handleSave(true);
-  }, 30000);
-  return () => clearInterval(interval);
-}, [handleSave, isEditing]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isEditing) handleSave(true);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [handleSave, isEditing]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -133,19 +135,34 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
 
   const handleClose = () => {
     if (isDirty) {
-      const confirm = window.confirm(
-        "You have unsaved changes. Are you sure you want to close?"
-      );
-      if (!confirm) return;
+      setShowCloseConfirm(true);
+      return;
     }
     onClose();
   };
 
   const handleAiApply = (text) => {
-    editor?.commands.setContent(`<p>${text}</p>`);
+    const lines = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (lines.length === 0) return;
+
+    const firstLine = lines[0];
+    const isTitle = firstLine.length < 80 && !firstLine.endsWith(".");
+
+    if (isTitle && lines.length > 1) {
+      setTitle(firstLine.replace(/^#+\s*/, ""));
+      const html = lines.slice(1).map((line) => `<p>${line}</p>`).join("");
+      editor?.commands.setContent(html);
+    } else {
+      const html = lines.map((line) => `<p>${line}</p>`).join("");
+      editor?.commands.setContent(html);
+    }
     setIsDirty(true);
   };
-  
+
   const handleAiTags = (newTags) => {
     setTags((prev) => [...new Set([...prev, ...newTags])]);
     setIsDirty(true);
@@ -165,6 +182,30 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
     setIsDirty(true);
   };
 
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      const importedTitle = file.name
+        .replace(/\.txt$/, "")
+        .replace(/[-_]/g, " ")
+        .trim();
+      setTitle(importedTitle);
+      const html = text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((line) => `<p>${line}</p>`)
+        .join("");
+      editor?.commands.setContent(html);
+      setIsDirty(true);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   const wordCount = editor?.getText().trim().split(/\s+/).filter(Boolean).length || 0;
   const charCount = editor?.getText().length || 0;
 
@@ -182,31 +223,6 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
     if (isDirty) return "text-yellow-400/60";
     return "text-white/20";
   };
-  const handleImport = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const text = event.target.result;
-    // Set title from filename
-    const importedTitle = file.name
-      .replace(/\.txt$/, "")
-      .replace(/[-_]/g, " ")
-      .trim();
-    setTitle(importedTitle);
-    // Set content — 
-    const html = text
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .map((line) => `<p>${line}</p>`)
-      .join("");
-    editor?.commands.setContent(html);
-    setIsDirty(true);
-  };
-  reader.readAsText(file);
-  e.target.value = "";
-};
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0e0e0e] flex flex-col">
@@ -221,30 +237,28 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
             {isEditing ? "Editing note" : "New note"}
           </p>
         </div>
-       <div className="flex items-center gap-4">
-  <span className="text-white/20 text-xs font-mono">
-    {wordCount} words · {charCount} chars
-       </span>
-        {isEditing && <ExportMenu note={note} />}
-     <span className="text-xs font-mono text-white/20 hidden sm:block">
-        Ctrl+S to save · Esc to close
-     </span>
-
-     <AiPanel
-       token={token}
-       title={title}
-       content={editor?.getHTML() || ""}
-       onApply={handleAiApply}
-       onTagsGenerated={handleAiTags}
-    />
-
-    <button
-       onClick={handleClose}
-       className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all text-xs"
-    >
-    ✕
-    </button>
-     </div>
+        <div className="flex items-center gap-4">
+          <span className="text-white/20 text-xs font-mono">
+            {wordCount} words · {charCount} chars
+          </span>
+          {isEditing && <ExportMenu note={note} />}
+          <span className="text-xs font-mono text-white/20 hidden sm:block">
+            Ctrl+S to save · Esc to close
+          </span>
+          <AiPanel
+            token={token}
+            title={title}
+            content={editor?.getHTML() || ""}
+            onApply={handleAiApply}
+            onTagsGenerated={handleAiTags}
+          />
+          <button
+            onClick={handleClose}
+            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all text-xs"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Title */}
@@ -306,117 +320,44 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
 
       {/* Toolbar */}
       <div className="flex items-center gap-1 px-8 py-2 border-y border-white/[0.06] shrink-0 flex-wrap">
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleBold().run()}
-          active={editor?.isActive("bold")}
-          title="Bold (Ctrl+B)"
-        >
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive("bold")} title="Bold (Ctrl+B)">
           <strong>B</strong>
         </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
-          active={editor?.isActive("italic")}
-          title="Italic (Ctrl+I)"
-        >
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleItalic().run()} active={editor?.isActive("italic")} title="Italic (Ctrl+I)">
           <em>I</em>
         </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleStrike().run()}
-          active={editor?.isActive("strike")}
-          title="Strikethrough"
-        >
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleStrike().run()} active={editor?.isActive("strike")} title="Strikethrough">
           <s>S</s>
         </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleCode().run()}
-          active={editor?.isActive("code")}
-          title="Inline code"
-        >
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleCode().run()} active={editor?.isActive("code")} title="Inline code">
           {"<>"}
         </ToolbarBtn>
 
         <div className="w-px h-5 bg-white/10 mx-1" />
 
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
-          active={editor?.isActive("heading", { level: 1 })}
-          title="Heading 1"
-        >
-          H1
-        </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-          active={editor?.isActive("heading", { level: 2 })}
-          title="Heading 2"
-        >
-          H2
-        </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-          active={editor?.isActive("heading", { level: 3 })}
-          title="Heading 3"
-        >
-          H3
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()} active={editor?.isActive("heading", { level: 1 })} title="Heading 1">H1</ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} active={editor?.isActive("heading", { level: 2 })} title="Heading 2">H2</ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} active={editor?.isActive("heading", { level: 3 })} title="Heading 3">H3</ToolbarBtn>
 
         <div className="w-px h-5 bg-white/10 mx-1" />
 
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleBulletList().run()}
-          active={editor?.isActive("bulletList")}
-          title="Bullet list"
-        >
-          ≡
-        </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-          active={editor?.isActive("orderedList")}
-          title="Numbered list"
-        >
-          1.
-        </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-          active={editor?.isActive("blockquote")}
-          title="Blockquote"
-        >
-          "
-        </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-          active={editor?.isActive("codeBlock")}
-          title="Code block"
-        >
-          {"{}"}
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive("bulletList")} title="Bullet list">≡</ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleOrderedList().run()} active={editor?.isActive("orderedList")} title="Numbered list">1.</ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleBlockquote().run()} active={editor?.isActive("blockquote")} title="Blockquote">"</ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().toggleCodeBlock().run()} active={editor?.isActive("codeBlock")} title="Code block">{"{}"}</ToolbarBtn>
 
         <div className="w-px h-5 bg-white/10 mx-1" />
 
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().undo().run()}
-          title="Undo (Ctrl+Z)"
-        >
-          ↩
-        </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().redo().run()}
-          title="Redo (Ctrl+Y)"
-        >
-          ↪
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().undo().run()} title="Undo (Ctrl+Z)">↩</ToolbarBtn>
+        <ToolbarBtn onClick={() => editor?.chain().focus().redo().run()} title="Redo (Ctrl+Y)">↪</ToolbarBtn>
+
         <div className="w-px h-5 bg-white/10 mx-1" />
 
-{/* Import .txt */}
-<label className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white text-xs transition-all cursor-pointer">
-  <span>↑</span>
-  Import .txt
-  <input
-    type="file"
-    accept=".txt"
-    onChange={handleImport}
-    className="hidden"
-  />
-</label>
+        <label className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white text-xs transition-all cursor-pointer">
+          <span>↑</span>
+          Import .txt
+          <input type="file" accept=".txt" onChange={handleImport} className="hidden" />
+        </label>
       </div>
 
       {/* Editor Area */}
@@ -445,6 +386,19 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
           </button>
         </div>
       </div>
+
+      {/* Unsaved Changes Modal */}
+      {showCloseConfirm && (
+        <ConfirmModal
+          title="Unsaved Changes"
+          message="You have unsaved changes. Are you sure you want to close without saving?"
+          confirmText="Close Anyway"
+          cancelText="Keep Editing"
+          confirmColor="red"
+          onConfirm={() => { setShowCloseConfirm(false); onClose(); }}
+          onCancel={() => setShowCloseConfirm(false)}
+        />
+      )}
 
     </div>
   );

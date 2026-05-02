@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ConfirmModal from "./ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const stripHtml = (html) => html?.replace(/<[^>]*>/g, "").trim() || "";
@@ -6,6 +7,7 @@ const stripHtml = (html) => html?.replace(/<[^>]*>/g, "").trim() || "";
 export default function TrashView({ token }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmId, setConfirmId] = useState(null);
 
   useEffect(() => { fetchTrash(); }, []);
 
@@ -34,21 +36,22 @@ export default function TrashView({ token }) {
       if (!res.ok) throw new Error("Failed to restore");
       setNotes((prev) => prev.filter((n) => n._id !== id));
     } catch (err) {
-      alert(err.message);
+      console.error(err.message);
     }
   };
 
-  const deletePermanently = async (id) => {
-    if (!window.confirm("Permanently delete this note? This cannot be undone.")) return;
+  const handleConfirmDelete = async () => {
     try {
-      const res = await fetch(`${API}/notes/${id}/permanent`, {
+      const res = await fetch(`${API}/notes/${confirmId}/permanent`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to delete");
-      setNotes((prev) => prev.filter((n) => n._id !== id));
+      setNotes((prev) => prev.filter((n) => n._id !== confirmId));
     } catch (err) {
-      alert(err.message);
+      console.error(err.message);
+    } finally {
+      setConfirmId(null);
     }
   };
 
@@ -100,7 +103,7 @@ export default function TrashView({ token }) {
                   Restore
                 </button>
                 <button
-                  onClick={() => deletePermanently(note._id)}
+                  onClick={() => setConfirmId(note._id)}
                   className="flex-1 py-1.5 text-xs font-bold rounded-lg bg-white/5 text-white/30 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                 >
                   Delete Forever
@@ -109,6 +112,17 @@ export default function TrashView({ token }) {
             </div>
           ))}
         </div>
+      )}
+
+      {confirmId && (
+        <ConfirmModal
+          title="Permanently Delete?"
+          message="This note will be gone forever. This action cannot be undone."
+          confirmText="Delete Forever"
+          confirmColor="red"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmId(null)}
+        />
       )}
     </div>
   );

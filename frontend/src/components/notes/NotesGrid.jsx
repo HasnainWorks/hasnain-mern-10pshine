@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import NoteCard from "./NoteCard";
 import SearchBar from "./SearchBar";
 import { stripHtml } from "./notesUtils.jsx";
+import ConfirmModal from "../ConfirmModal";
 
 const API = "http://localhost:5000/api";
 
@@ -11,6 +12,7 @@ export default function NotesGrid({ token, onSelectNote, onNotesChange }) {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => { fetchNotes(); }, []);
 
@@ -31,18 +33,23 @@ export default function NotesGrid({ token, onSelectNote, onNotesChange }) {
     }
   };
 
-  const deleteNote = async (e, id) => {
+  const deleteNote = (e, id) => {
     e.stopPropagation();
-    if (!window.confirm("Move to trash?")) return;
+    setConfirmDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
     try {
-      const res = await fetch(`${API}/notes/${id}`, {
+      const res = await fetch(`${API}/notes/${confirmDelete}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to delete");
-      setNotes((prev) => prev.filter((n) => n._id !== id));
+      setNotes((prev) => prev.filter((n) => n._id !== confirmDelete));
     } catch (err) {
-      alert(err.message);
+      console.error(err.message);
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -61,7 +68,7 @@ export default function NotesGrid({ token, onSelectNote, onNotesChange }) {
           .sort((a, b) => b.isPinned - a.isPinned)
       );
     } catch (err) {
-      alert(err.message);
+      console.error(err.message);
     }
   };
 
@@ -178,6 +185,17 @@ export default function NotesGrid({ token, onSelectNote, onNotesChange }) {
             </div>
           )}
         </>
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          title="Move to Trash?"
+          message="This note will be moved to trash. You can restore it later."
+          confirmText="Move to Trash"
+          confirmColor="red"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );
