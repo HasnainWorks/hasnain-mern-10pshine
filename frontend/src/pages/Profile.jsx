@@ -62,7 +62,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 py-12">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <ProfileHeader profile={profile} />
         <ProfileStats stats={profile?.stats} />
         <EditInfoForm profile={profile} token={token} onUpdate={handleUpdate} />
@@ -70,6 +70,7 @@ export default function Profile() {
         <DangerZone token={token} />
       </div>
 
+      
     </div>
   );
 }

@@ -6,7 +6,7 @@ export default function ProfileStats({ stats }) {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-3 mb-10">
+    <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-10">
       {items.map((stat) => (
         <div
           key={stat.label}
