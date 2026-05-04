@@ -8,7 +8,6 @@ import TrashView from "../components/TrashView";
 import NoteEditor from "../pages/NoteEditor";
 import ImportNote from "../components/notes/ImportNote";
 
-
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -18,26 +17,14 @@ export default function Dashboard() {
   const [showEditor, setShowEditor] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [importedNote, setImportedNote] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate("/login"); };
-  const openNew = () => { setSelectedNote(null); setShowEditor(true); };
+  const openNew = () => { setSelectedNote(null); setImportedNote(null); setShowEditor(true); };
   const openEdit = (note) => { setSelectedNote(note); setShowEditor(true); };
- const handleSave = () => {
-  setShowEditor(false);
-  setImportedNote(null);
-  setRefreshKey((k) => k + 1);
-};
-
-const handleEditorClose = () => {
-  setShowEditor(false);
-  setImportedNote(null);
-};
-
-const handleImport = ({ title, content }) => {
-  setImportedNote({ title, content });
-  setSelectedNote(null);
-  setShowEditor(true);
-};
+  const handleSave = () => { setShowEditor(false); setImportedNote(null); setRefreshKey((k) => k + 1); };
+  const handleEditorClose = () => { setShowEditor(false); setImportedNote(null); };
+  const handleImport = ({ title, content }) => { setImportedNote({ title, content }); setSelectedNote(null); setShowEditor(true); };
 
   const navItems = [
     { id: "notes",  label: "All Notes", icon: "✦" },
@@ -46,31 +33,60 @@ const handleImport = ({ title, content }) => {
     { id: "trash",  label: "Trash",     icon: "⊗" },
   ];
 
+  const handleNavClick = (id) => {
+    setActiveSection(id);
+    setSidebarOpen(false);
+  };
+
   return (
     <div className="flex h-screen bg-[#0e0e0e] text-white overflow-hidden font-sans">
 
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-60 border-r border-white/[0.07] flex flex-col py-6 px-4 shrink-0">
-        <div className="flex items-center gap-2.5 mb-10 px-2">
-          <div className="bg-[#CAFF00] text-black w-7 h-7 rounded flex items-center justify-center font-black text-sm">→</div>
-          <span className="font-black text-lg tracking-tight">Noted.</span>
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-40
+        w-64 border-r border-white/[0.07] flex flex-col py-6 px-4 shrink-0
+        bg-[#0e0e0e] transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
+        {/* Logo */}
+        <div className="flex items-center justify-between mb-8 px-2">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-[#CAFF00] text-black w-7 h-7 rounded flex items-center justify-center font-black text-sm">→</div>
+            <span className="font-black text-lg tracking-tight">Noted.</span>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-white/30 hover:text-white transition-colors"
+          >
+            ✕
+          </button>
         </div>
 
-       <div className="flex flex-col gap-2 mb-6">
-  <button
-    onClick={openNew}
-    className="w-full bg-[#CAFF00] hover:bg-[#b8e600] text-black text-sm font-bold py-2.5 rounded-lg transition-colors"
-  >
-    + New Note
-  </button>
-  <ImportNote onImport={handleImport} />
-</div>
+        {/* New Note + Import */}
+        <div className="flex flex-col gap-2 mb-6">
+          <button
+            onClick={() => { openNew(); setSidebarOpen(false); }}
+            className="w-full bg-[#CAFF00] hover:bg-[#b8e600] text-black text-sm font-bold py-2.5 rounded-lg transition-colors"
+          >
+            + New Note
+          </button>
+          <ImportNote onImport={(data) => { handleImport(data); setSidebarOpen(false); }} />
+        </div>
 
+        {/* Nav */}
         <nav className="flex flex-col gap-0.5 flex-1">
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveSection(item.id)}
+              onClick={() => handleNavClick(item.id)}
               className={`flex items-center gap-3 text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeSection === item.id
                   ? "bg-[#CAFF00] text-black"
@@ -83,9 +99,10 @@ const handleImport = ({ title, content }) => {
           ))}
         </nav>
 
+        {/* User */}
         <div className="border-t border-white/[0.07] pt-4 px-2">
           <button
-            onClick={() => navigate("/profile")}
+            onClick={() => { navigate("/profile"); setSidebarOpen(false); }}
             className="flex items-center gap-2.5 mb-2 w-full hover:opacity-80 transition-opacity text-left"
           >
             <div className="w-7 h-7 rounded-full bg-[#CAFF00] text-black flex items-center justify-center font-black text-xs shrink-0">
@@ -105,32 +122,56 @@ const handleImport = ({ title, content }) => {
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 overflow-y-auto">
-        {activeSection === "notes" && (
-          <NotesGrid key={refreshKey} token={token} onSelectNote={openEdit} />
-        )}
-        {activeSection === "pinned" && (
-          <PinnedView token={token} onSelectNote={openEdit} />
-        )}
-        {activeSection === "tags" && (
-          <TagsView token={token} onSelectNote={openEdit} />
-        )}
-        {activeSection === "trash" && (
-          <TrashView token={token} />
-        )}
-      </main>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        {/* Mobile Top Bar */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+          >
+            ☰
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="bg-[#CAFF00] text-black w-6 h-6 rounded flex items-center justify-center font-black text-xs">→</div>
+            <span className="font-black text-base tracking-tight">Noted.</span>
+          </div>
+          <button
+            onClick={openNew}
+            className="w-9 h-9 rounded-lg bg-[#CAFF00] flex items-center justify-center text-black font-black text-lg"
+          >
+            +
+          </button>
+        </div>
+
+        {/* Content */}
+        <main className="flex-1 overflow-y-auto">
+          {activeSection === "notes" && (
+            <NotesGrid key={refreshKey} token={token} onSelectNote={openEdit} />
+          )}
+          {activeSection === "pinned" && (
+            <PinnedView token={token} onSelectNote={openEdit} />
+          )}
+          {activeSection === "tags" && (
+            <TagsView token={token} onSelectNote={openEdit} />
+          )}
+          {activeSection === "trash" && (
+            <TrashView token={token} />
+          )}
+        </main>
+      </div>
 
       {/* Editor */}
       {showEditor && (
-  <NoteEditor
-    token={token}
-    note={selectedNote}
-    importedData={importedNote}
-    onSave={handleSave}
-    onClose={handleEditorClose}
-  />
-)}
+        <NoteEditor
+          token={token}
+          note={selectedNote}
+          importedData={importedNote}
+          onSave={handleSave}
+          onClose={handleEditorClose}
+        />
+      )}
     </div>
   );
 }
