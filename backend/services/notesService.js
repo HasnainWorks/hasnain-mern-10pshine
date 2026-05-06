@@ -1,5 +1,14 @@
 const Note = require("../models/Note");
 const logger = require("../utils/logger");
+const sanitizeHtml = require("sanitize-html");
+
+const sanitizeOptions = {
+  allowedTags: [
+    "p", "br", "strong", "em", "s", "code", "pre",
+    "h1", "h2", "h3", "ul", "ol", "li", "blockquote",
+  ],
+  allowedAttributes: {},
+};
 
 const createNote = async (title, content, userId, tags = []) => {
   if (!title) {
@@ -7,21 +16,53 @@ const createNote = async (title, content, userId, tags = []) => {
     error.status = 400;
     throw error;
   }
-  const note = await Note.create({ title, content, user: userId, tags });
+  if (title.length > 200) {
+    const error = new Error("Title cannot exceed 200 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (content && content.length > 50000) {
+    const error = new Error("Content cannot exceed 50000 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (tags.length > 10) {
+    const error = new Error("Cannot have more than 10 tags");
+    error.status = 400;
+    throw error;
+  }
+  const cleanContent = sanitizeHtml(content || "", sanitizeOptions);
+  const note = await Note.create({ title, content: cleanContent, user: userId, tags });
   logger.info(`Note created by user: ${userId}`);
   return note;
 };
 
-const getNotes = async (userId) => {
-  const notes = await Note.find({ user: userId, isDeleted: false }).sort({
-    isPinned: -1,
-    updatedAt: -1,
-  });
+const getNotes = async (userId, page = 1, limit = 20) => {
+  const skip = (page - 1) * limit;
+  const notes = await Note.find({ user: userId, isDeleted: false })
+    .sort({ isPinned: -1, updatedAt: -1 })
+    .skip(skip)
+    .limit(limit);
+  const total = await Note.countDocuments({ user: userId, isDeleted: false });
   logger.info(`Notes fetched by user: ${userId}`);
-  return notes;
+  return {
+    notes,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+    hasMore: page * limit < total,
+  };
 };
 
 const updateNote = async (noteId, userId, updateData) => {
+  if (updateData.content) {
+    updateData.content = sanitizeHtml(updateData.content, sanitizeOptions);
+  }
+  if (updateData.title && updateData.title.length > 200) {
+    const error = new Error("Title cannot exceed 200 characters");
+    error.status = 400;
+    throw error;
+  }
   const updated = await Note.findOneAndUpdate(
     { _id: noteId, user: userId, isDeleted: false },
     updateData,
@@ -37,7 +78,6 @@ const updateNote = async (noteId, userId, updateData) => {
 };
 
 const deleteNote = async (noteId, userId) => {
-  // Soft delete
   const deleted = await Note.findOneAndUpdate(
     { _id: noteId, user: userId, isDeleted: false },
     { isDeleted: true, deletedAt: new Date() },
@@ -90,7 +130,11 @@ const permanentlyDeleteNote = async (noteId, userId) => {
 };
 
 const togglePin = async (noteId, userId) => {
-  const note = await Note.findOne({ _id: noteId, user: userId, isDeleted: false });
+  const note = await Note.findOne({
+    _id: noteId,
+    user: userId,
+    isDeleted: false,
+  });
   if (!note) {
     const error = new Error("Note not found or not authorized");
     error.status = 404;
@@ -103,6 +147,11 @@ const togglePin = async (noteId, userId) => {
 };
 
 const updateTags = async (noteId, userId, tags) => {
+  if (tags.length > 10) {
+    const error = new Error("Cannot have more than 10 tags");
+    error.status = 400;
+    throw error;
+  }
   const updated = await Note.findOneAndUpdate(
     { _id: noteId, user: userId, isDeleted: false },
     { tags },
