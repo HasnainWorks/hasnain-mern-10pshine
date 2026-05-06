@@ -12,8 +12,10 @@ const createNote = async (req, res, next) => {
 
 const getNotes = async (req, res, next) => {
   try {
-    const notes = await notesService.getNotes(req.user.id);
-    res.json(notes);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const result = await notesService.getNotes(req.user.id, page, limit);
+    res.json(result);
   } catch (err) {
     next(err);
   }

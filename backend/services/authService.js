@@ -4,9 +4,41 @@ const User = require("../models/User");
 const Note = require("../models/Note");
 const logger = require("../utils/logger");
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const signup = async (name, email, password) => {
   if (!name || !email || !password) {
     const error = new Error("Name, email, and password are required");
+    error.status = 400;
+    throw error;
+  }
+  if (name.trim().length < 2) {
+    const error = new Error("Name must be at least 2 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (name.length > 50) {
+    const error = new Error("Name cannot exceed 50 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (!EMAIL_REGEX.test(email)) {
+    const error = new Error("Invalid email address");
+    error.status = 400;
+    throw error;
+  }
+  if (email.length > 100) {
+    const error = new Error("Email cannot exceed 100 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (password.length < 6) {
+    const error = new Error("Password must be at least 6 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (password.length > 100) {
+    const error = new Error("Password cannot exceed 100 characters");
     error.status = 400;
     throw error;
   }
@@ -17,7 +49,7 @@ const signup = async (name, email, password) => {
     throw error;
   }
   const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, password: hashedPassword });
+  const user = await User.create({ name: name.trim(), email, password: hashedPassword });
   logger.info(`User created: ${user.email}`);
   return { id: user._id, name: user.name, email: user.email };
 };
@@ -25,6 +57,11 @@ const signup = async (name, email, password) => {
 const login = async (email, password) => {
   if (!email || !password) {
     const error = new Error("Email and password are required");
+    error.status = 400;
+    throw error;
+  }
+  if (!EMAIL_REGEX.test(email)) {
+    const error = new Error("Invalid email address");
     error.status = 400;
     throw error;
   }
@@ -80,8 +117,22 @@ const updateMe = async (userId, name, email) => {
     error.status = 400;
     throw error;
   }
+  if (name.trim().length < 2) {
+    const error = new Error("Name must be at least 2 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (name.length > 50) {
+    const error = new Error("Name cannot exceed 50 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (!EMAIL_REGEX.test(email)) {
+    const error = new Error("Invalid email address");
+    error.status = 400;
+    throw error;
+  }
 
-  // Check email not taken by another user
   const existing = await User.findOne({ email, _id: { $ne: userId } });
   if (existing) {
     const error = new Error("Email already in use");
@@ -91,7 +142,7 @@ const updateMe = async (userId, name, email) => {
 
   const user = await User.findByIdAndUpdate(
     userId,
-    { name, email },
+    { name: name.trim(), email },
     { new: true }
   ).select("-password");
 
@@ -111,9 +162,13 @@ const changePassword = async (userId, currentPassword, newPassword) => {
     error.status = 400;
     throw error;
   }
-
   if (newPassword.length < 6) {
     const error = new Error("New password must be at least 6 characters");
+    error.status = 400;
+    throw error;
+  }
+  if (newPassword.length > 100) {
+    const error = new Error("New password cannot exceed 100 characters");
     error.status = 400;
     throw error;
   }
@@ -131,12 +186,13 @@ const changePassword = async (userId, currentPassword, newPassword) => {
     error.status = 400;
     throw error;
   }
+
   const isSame = await bcrypt.compare(newPassword, user.password);
   if (isSame) {
-  const error = new Error("New password must be different from current password");
-  error.status = 400;
-  throw error;
-}
+    const error = new Error("New password must be different from current password");
+    error.status = 400;
+    throw error;
+  }
 
   user.password = await bcrypt.hash(newPassword, 10);
   await user.save();
@@ -153,10 +209,7 @@ const deleteMe = async (userId) => {
     throw error;
   }
 
-  // Delete all notes
   await Note.deleteMany({ user: userId });
-
-  // Delete user
   await User.findByIdAndDelete(userId);
 
   logger.info(`User deleted: ${user.email}`);
