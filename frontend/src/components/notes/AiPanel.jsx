@@ -1,10 +1,7 @@
 import { useState } from "react";
+import api from "../../services/api";
 
-const API = "http://localhost:5000/api";
-
-const stripHtml = (html) => html?.replace(/<[^>]*>/g, "").trim() || "";
-
-export default function AiPanel({ token, title, content, onApply, onTagsGenerated }) {
+export default function AiPanel({ title, content, onApply, onTagsGenerated }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -23,19 +20,10 @@ export default function AiPanel({ token, title, content, onApply, onTagsGenerate
     reset();
     setLoading("summarize");
     try {
-      const res = await fetch(`${API}/ai/summarize`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, content }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      const { data } = await api.post("/ai/summarize", { title, content });
       setSummary(data.summary);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(null);
     }
@@ -45,19 +33,10 @@ export default function AiPanel({ token, title, content, onApply, onTagsGenerate
     reset();
     setLoading(action);
     try {
-      const res = await fetch(`${API}/ai/assist`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, content, action }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      const { data } = await api.post("/ai/assist", { title, content, action });
       setAssistResult({ action, text: data.result });
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(null);
     }
@@ -67,19 +46,10 @@ export default function AiPanel({ token, title, content, onApply, onTagsGenerate
     reset();
     setLoading("tags");
     try {
-      const res = await fetch(`${API}/ai/tags`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, content }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      const { data } = await api.post("/ai/tags", { title, content });
       setSuggestedTags(data.tags);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(null);
     }
@@ -101,7 +71,6 @@ export default function AiPanel({ token, title, content, onApply, onTagsGenerate
 
   return (
     <div className="relative">
-      {/* AI Toggle Button */}
       <button
         onClick={() => { setOpen((o) => !o); reset(); }}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -113,11 +82,9 @@ export default function AiPanel({ token, title, content, onApply, onTagsGenerate
         ✦ AI
       </button>
 
-      {/* Panel */}
       {open && (
         <div className="absolute right-0 top-full mt-2 z-50 w-80 bg-[#1a1a1a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden">
 
-          {/* Header */}
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <div>
               <p className="text-[#CAFF00] text-[10px] font-mono uppercase tracking-[0.3em]">AI Assistant</p>

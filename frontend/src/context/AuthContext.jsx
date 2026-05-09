@@ -16,6 +16,22 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
+    // Check token expiry
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setLoading(false);
+        return;
+      }
+    } catch {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setLoading(false);
+      return;
+    }
+
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     } else {
@@ -26,7 +42,6 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("token");
       }
     }
-
     setLoading(false);
   }, []);
 
@@ -48,8 +63,14 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Called after profile update to sync user state
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

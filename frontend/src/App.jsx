@@ -18,19 +18,34 @@ function Layout({ children }) {
   );
 }
 
+function NotFound() {
+  return (
+    <div className="min-h-screen bg-[#0e0e0e] text-white flex flex-col items-center justify-center gap-4">
+      <div className="w-12 h-12 rounded-xl bg-[#CAFF00]/10 flex items-center justify-center text-2xl">✦</div>
+      <h1 className="text-4xl font-black tracking-tight">404</h1>
+      <p className="text-white/30 text-sm">This page doesn't exist.</p>
+      <a href="/dashboard" className="text-[#CAFF00] text-sm hover:underline">
+        Go to Dashboard →
+      </a>
+    </div>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Layout>
           <Routes>
+            
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/notes/new" element={<PrivateRoute><NoteEditor /></PrivateRoute>} />
             <Route path="/notes/:id/edit" element={<PrivateRoute><NoteEditor /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
       </AuthProvider>

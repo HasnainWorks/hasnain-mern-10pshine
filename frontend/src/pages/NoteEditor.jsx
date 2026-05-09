@@ -5,8 +5,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import ExportMenu from "../components/notes/ExportMenu";
 import AiPanel from "../components/notes/AiPanel";
 import ConfirmModal from "../components/ConfirmModal";
-
-const API = "http://localhost:5000/api";
+import api from "../services/api";
 
 const ToolbarBtn = ({ onClick, active, title, children }) => (
   <button
@@ -22,7 +21,7 @@ const ToolbarBtn = ({ onClick, active, title, children }) => (
   </button>
 );
 
-export default function NoteEditor({ token, note, importedData, onSave, onClose }) {
+export default function NoteEditor({ note, importedData, onSave, onClose }) {
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
@@ -85,20 +84,15 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
 
     try {
       const content = editor?.getHTML() || "";
-      const url = isEditing ? `${API}/notes/${note._id}` : `${API}/notes`;
-      const method = isEditing ? "PUT" : "POST";
+      let saved;
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, content, tags }),
-      });
-
-      if (!res.ok) throw new Error("Failed to save note");
-      const saved = await res.json();
+      if (isEditing) {
+        const { data } = await api.put(`/notes/${note._id}`, { title, content, tags });
+        saved = data;
+      } else {
+        const { data } = await api.post("/notes", { title, content, tags });
+        saved = data;
+      }
 
       setSaveStatus("saved");
       setIsDirty(false);
@@ -108,11 +102,11 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch (err) {
       setSaveStatus("error");
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setSaving(false);
     }
-  }, [title, tags, isDirty, editor, isEditing, note, token, onSave]);
+  }, [title, tags, isDirty, editor, isEditing, note, onSave]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -246,7 +240,6 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
             Ctrl+S to save · Esc to close
           </span>
           <AiPanel
-            token={token}
             title={title}
             content={editor?.getHTML() || ""}
             onApply={handleAiApply}
@@ -387,7 +380,6 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
         </div>
       </div>
 
-      {/* Unsaved Changes Modal */}
       {showCloseConfirm && (
         <ConfirmModal
           title="Unsaved Changes"
@@ -399,7 +391,6 @@ export default function NoteEditor({ token, note, importedData, onSave, onClose 
           onCancel={() => setShowCloseConfirm(false)}
         />
       )}
-
     </div>
   );
 }

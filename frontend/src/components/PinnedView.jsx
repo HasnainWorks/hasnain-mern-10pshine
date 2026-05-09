@@ -1,22 +1,20 @@
 import { useEffect, useState } from "react";
+import api from "../services/api";
 
-const API = "http://localhost:5000/api";
 const stripHtml = (html) => html?.replace(/<[^>]*>/g, "").trim() || "";
 
-export default function PinnedView({ token, onSelectNote }) {
+export default function PinnedView({ onSelectNote }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPinned = async () => {
       try {
-        const res = await fetch(`${API}/notes`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setNotes(data.filter((n) => n.isPinned));
+        const { data } = await api.get("/notes");
+        const notes = data.notes || data;
+        setNotes(notes.filter((n) => n.isPinned));
       } catch (err) {
-        console.error(err);
+        console.error(err.response?.data?.message || err.message);
       } finally {
         setLoading(false);
       }
@@ -45,7 +43,7 @@ export default function PinnedView({ token, onSelectNote }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {notes.map((note, i) => (
+          {notes.map((note) => (
             <div
               key={note._id}
               onClick={() => onSelectNote(note)}

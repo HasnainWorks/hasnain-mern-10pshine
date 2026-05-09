@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import ConfirmModal from "./ConfirmModal";
+import api from "../services/api";
 
-const API = "http://localhost:5000/api";
 const stripHtml = (html) => html?.replace(/<[^>]*>/g, "").trim() || "";
 
-export default function TrashView({ token }) {
+export default function TrashView() {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState(null);
@@ -14,14 +14,10 @@ export default function TrashView({ token }) {
   const fetchTrash = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API}/notes/trash`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch trash");
-      const data = await res.json();
+      const { data } = await api.get("/notes/trash");
       setNotes(data);
     } catch (err) {
-      console.error(err);
+      console.error(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -29,27 +25,19 @@ export default function TrashView({ token }) {
 
   const restore = async (id) => {
     try {
-      const res = await fetch(`${API}/notes/${id}/restore`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to restore");
+      await api.patch(`/notes/${id}/restore`);
       setNotes((prev) => prev.filter((n) => n._id !== id));
     } catch (err) {
-      console.error(err.message);
+      console.error(err.response?.data?.message || err.message);
     }
   };
 
   const handleConfirmDelete = async () => {
     try {
-      const res = await fetch(`${API}/notes/${confirmId}/permanent`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to delete");
+      await api.delete(`/notes/${confirmId}/permanent`);
       setNotes((prev) => prev.filter((n) => n._id !== confirmId));
     } catch (err) {
-      console.error(err.message);
+      console.error(err.response?.data?.message || err.message);
     } finally {
       setConfirmId(null);
     }
