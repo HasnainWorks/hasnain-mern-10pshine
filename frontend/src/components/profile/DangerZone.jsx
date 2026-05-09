@@ -1,29 +1,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api";
 
-const API = "http://localhost:5000/api";
-
-export default function DangerZone({ token }) {
+export default function DangerZone() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleDelete = async () => {
     if (deleteConfirm !== "DELETE") return;
     setDeleting(true);
+    setError(null);
     try {
-      const res = await fetch(`${API}/auth/me`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to delete account");
+      await api.delete("/auth/me");
       logout();
       navigate("/login");
     } catch (err) {
-      alert(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setDeleting(false);
     }
@@ -60,6 +57,9 @@ export default function DangerZone({ token }) {
             placeholder="Type DELETE to confirm"
             className="w-full bg-[#0e0e0e] border border-red-500/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500/40 transition-colors placeholder-white/20"
           />
+          {error && (
+            <p className="text-red-400 text-xs font-mono">✗ {error}</p>
+          )}
           <button
             onClick={handleDelete}
             disabled={deleteConfirm !== "DELETE" || deleting}

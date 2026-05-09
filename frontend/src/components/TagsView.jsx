@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
+import api from "../services/api";
 
-const API = "http://localhost:5000/api";
 const stripHtml = (html) => html?.replace(/<[^>]*>/g, "").trim() || "";
 
-export default function TagsView({ token, onSelectNote }) {
+export default function TagsView({ onSelectNote }) {
   const [notes, setNotes] = useState([]);
   const [selectedTag, setSelectedTag] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -11,13 +11,10 @@ export default function TagsView({ token, onSelectNote }) {
   useEffect(() => {
     const fetchNotes = async () => {
       try {
-        const res = await fetch(`${API}/notes`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setNotes(data);
+        const { data } = await api.get("/notes");
+        setNotes(data.notes || data);
       } catch (err) {
-        console.error(err);
+        console.error(err.response?.data?.message || err.message);
       } finally {
         setLoading(false);
       }
@@ -25,7 +22,6 @@ export default function TagsView({ token, onSelectNote }) {
     fetchNotes();
   }, []);
 
-  // Get all unique tags
   const allTags = [...new Set(notes.flatMap((n) => n.tags || []))];
   const filtered = selectedTag
     ? notes.filter((n) => n.tags?.includes(selectedTag))
@@ -52,7 +48,6 @@ export default function TagsView({ token, onSelectNote }) {
         </div>
       ) : (
         <>
-          {/* Tag Pills */}
           <div className="flex flex-wrap gap-2 mb-8">
             {allTags.map((tag) => {
               const count = notes.filter((n) => n.tags?.includes(tag)).length;
@@ -75,7 +70,6 @@ export default function TagsView({ token, onSelectNote }) {
             })}
           </div>
 
-          {/* Notes for selected tag */}
           {selectedTag && (
             <>
               <p className="text-white/30 text-xs font-mono uppercase tracking-widest mb-3">

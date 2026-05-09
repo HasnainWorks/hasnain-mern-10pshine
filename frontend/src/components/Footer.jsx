@@ -1,23 +1,23 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-white/[0.06] bg-[#0e0e0e] px-6 py-5">
-      <div className="max-w-6xl mx-auto flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+    <footer className="border-t border-white/[0.06] bg-[#0e0e0e] px-8 py-4">
+      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
 
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="bg-[#CAFF00] text-black w-5 h-5 rounded flex items-center justify-center font-black text-xs">
             →
           </div>
-          <span className="font-black text-sm tracking-tight">Noted.</span>
-          <span className="text-white/20 text-xs font-mono hidden sm:inline">· Your thoughts, organized</span>
+          <span className="font-black text-sm tracking-tight text-white">Noted.</span>
+          <span className="text-white/40 text-xs font-mono hidden sm:inline">· Your thoughts, organized</span>
         </div>
 
-        {/* Copyright */}
-        <p className="text-white/20 text-xs font-mono text-center">
+        {/* Center */}
+        <p className="text-white/40 text-xs font-mono text-center">
           © {new Date().getFullYear()} Noted. All rights reserved.
         </p>
 
-        {/* Tech Stack */}
+        {/* Right */}
         <div className="flex items-center gap-2">
           {["React", "Node.js", "MongoDB"].map((tech) => (
             <span

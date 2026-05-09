@@ -11,7 +11,6 @@ import ImportNote from "../components/notes/ImportNote";
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
   const [activeSection, setActiveSection] = useState("notes");
   const [selectedNote, setSelectedNote] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -27,10 +26,10 @@ export default function Dashboard() {
   const handleImport = ({ title, content }) => { setImportedNote({ title, content }); setSelectedNote(null); setShowEditor(true); };
 
   const navItems = [
-    { id: "notes",  label: "All Notes", icon: "✦" },
-    { id: "pinned", label: "Pinned",    icon: "⊹" },
-    { id: "tags",   label: "Tags",      icon: "◈" },
-    { id: "trash",  label: "Trash",     icon: "⊗" },
+    { id: "notes", label: "All Notes", icon: "✦" },
+    { id: "pinned", label: "Pinned", icon: "⊹" },
+    { id: "tags", label: "Tags", icon: "◈" },
+    { id: "trash", label: "Trash", icon: "⊗" },
   ];
 
   const handleNavClick = (id) => {
@@ -56,7 +55,6 @@ export default function Dashboard() {
         bg-[#0e0e0e] transition-transform duration-300 ease-in-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
-        {/* Logo */}
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center gap-2.5">
             <div className="bg-[#CAFF00] text-black w-7 h-7 rounded flex items-center justify-center font-black text-sm">→</div>
@@ -70,7 +68,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* New Note + Import */}
         <div className="flex flex-col gap-2 mb-6">
           <button
             onClick={() => { openNew(); setSidebarOpen(false); }}
@@ -81,7 +78,6 @@ export default function Dashboard() {
           <ImportNote onImport={(data) => { handleImport(data); setSidebarOpen(false); }} />
         </div>
 
-        {/* Nav */}
         <nav className="flex flex-col gap-0.5 flex-1">
           {navItems.map((item) => (
             <button
@@ -99,7 +95,6 @@ export default function Dashboard() {
           ))}
         </nav>
 
-        {/* User */}
         <div className="border-t border-white/[0.07] pt-4 px-2">
           <button
             onClick={() => { navigate("/profile"); setSidebarOpen(false); }}
@@ -145,27 +140,27 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto">
-          {activeSection === "notes" && (
-            <NotesGrid key={refreshKey} token={token} onSelectNote={openEdit} />
-          )}
-          {activeSection === "pinned" && (
-            <PinnedView token={token} onSelectNote={openEdit} />
-          )}
-          {activeSection === "tags" && (
-            <TagsView token={token} onSelectNote={openEdit} />
-          )}
-          {activeSection === "trash" && (
-            <TrashView token={token} />
-          )}
+        <main className="flex-1 overflow-y-auto flex flex-col">
+          <div className="flex-1">
+            {activeSection === "notes" && (
+              <NotesGrid key={refreshKey} onSelectNote={openEdit} />
+            )}
+            {activeSection === "pinned" && (
+              <PinnedView onSelectNote={openEdit} />
+            )}
+            {activeSection === "tags" && (
+              <TagsView onSelectNote={openEdit} />
+            )}
+            {activeSection === "trash" && (
+              <TrashView />
+            )}
+          </div>
+          
         </main>
       </div>
 
-      {/* Editor */}
       {showEditor && (
         <NoteEditor
-          token={token}
           note={selectedNote}
           importedData={importedNote}
           onSave={handleSave}

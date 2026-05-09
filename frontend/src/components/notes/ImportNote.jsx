@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 export default function ImportNote({ onImport }) {
   const inputRef = useRef(null);

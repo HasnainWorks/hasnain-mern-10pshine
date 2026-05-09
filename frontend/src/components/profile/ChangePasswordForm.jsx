@@ -1,10 +1,9 @@
 import { useState } from "react";
 import Field from "./Field";
 import Section from "./Section";
+import api from "../../services/api";
 
-const API = "http://localhost:5000/api";
-
-export default function ChangePasswordForm({ token }) {
+export default function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,22 +18,13 @@ export default function ChangePasswordForm({ token }) {
     setSaving(true);
     setMsg(null);
     try {
-      const res = await fetch(`${API}/auth/me/password`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      await api.put("/auth/me/password", { currentPassword, newPassword });
       setMsg({ type: "success", text: "Password changed successfully" });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setMsg({ type: "error", text: err.message });
+      setMsg({ type: "error", text: err.response?.data?.message || err.message });
     } finally {
       setSaving(false);
     }
@@ -48,8 +38,9 @@ export default function ChangePasswordForm({ token }) {
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
+            disabled={saving}
             placeholder="••••••••"
-            className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#CAFF00]/40 transition-colors placeholder-white/20"
+            className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#CAFF00]/40 transition-colors placeholder-white/20 disabled:opacity-50"
           />
         </Field>
         <Field label="New Password">
@@ -57,8 +48,9 @@ export default function ChangePasswordForm({ token }) {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
+            disabled={saving}
             placeholder="••••••••"
-            className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#CAFF00]/40 transition-colors placeholder-white/20"
+            className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#CAFF00]/40 transition-colors placeholder-white/20 disabled:opacity-50"
           />
         </Field>
         <Field label="Confirm New Password">
@@ -66,8 +58,9 @@ export default function ChangePasswordForm({ token }) {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            disabled={saving}
             placeholder="••••••••"
-            className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#CAFF00]/40 transition-colors placeholder-white/20"
+            className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#CAFF00]/40 transition-colors placeholder-white/20 disabled:opacity-50"
           />
         </Field>
 

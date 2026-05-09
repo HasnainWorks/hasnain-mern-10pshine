@@ -3,10 +3,9 @@ import NoteCard from "./NoteCard";
 import SearchBar from "./SearchBar";
 import { stripHtml } from "./notesUtils.jsx";
 import ConfirmModal from "../ConfirmModal";
+import api from "../../services/api";
 
-const API = "http://localhost:5000/api";
-
-export default function NotesGrid({ token, onSelectNote, onNotesChange }) {
+export default function NotesGrid({ onSelectNote, onNotesChange }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,15 +18,11 @@ export default function NotesGrid({ token, onSelectNote, onNotesChange }) {
   const fetchNotes = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API}/notes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch notes");
-      const data = await res.json();
-      setNotes(data);
-      onNotesChange?.(data);
+      const { data } = await api.get("/notes");
+      setNotes(data.notes || data);
+      onNotesChange?.(data.notes || data);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -40,14 +35,10 @@ export default function NotesGrid({ token, onSelectNote, onNotesChange }) {
 
   const handleConfirmDelete = async () => {
     try {
-      const res = await fetch(`${API}/notes/${confirmDelete}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to delete");
+      await api.delete(`/notes/${confirmDelete}`);
       setNotes((prev) => prev.filter((n) => n._id !== confirmDelete));
     } catch (err) {
-      console.error(err.message);
+      console.error(err.response?.data?.message || err.message);
     } finally {
       setConfirmDelete(null);
     }
@@ -56,19 +47,14 @@ export default function NotesGrid({ token, onSelectNote, onNotesChange }) {
   const togglePin = async (e, id) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`${API}/notes/${id}/pin`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to pin");
-      const updated = await res.json();
+      const { data } = await api.patch(`/notes/${id}/pin`);
       setNotes((prev) =>
         prev
-          .map((n) => (n._id === id ? updated : n))
+          .map((n) => (n._id === id ? data : n))
           .sort((a, b) => b.isPinned - a.isPinned)
       );
     } catch (err) {
-      console.error(err.message);
+      console.error(err.response?.data?.message || err.message);
     }
   };
 
