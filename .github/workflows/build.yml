@@ -4,7 +4,7 @@ on:
     branches:
       - main
       - develop
-      - feature/sonarqube-integration
+      - fix/sonarqube-coverage
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
@@ -15,6 +15,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci --ignore-scripts
+      - name: Run frontend coverage
+        run: cd frontend && npm run coverage
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
